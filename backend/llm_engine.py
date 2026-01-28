@@ -4,11 +4,18 @@ import random
 import re
 from litellm import completion
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 from backend.prompts import get_system_prompt, get_fallback_scenario
 
 # Umgebungsvariablen laden
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+# Definition des erwarteten Schemas
+class StoryResponse(BaseModel):
+    story: str = Field(..., description="Der Text des nächsten Kapitels der Geschichte (100-150 Wörter).")
+    question: str = Field(..., description="Die Matheaufgabe, die das Kind lösen muss.")
+    answer: int = Field(..., description="Die numerische Lösung der Aufgabe (Ganzzahl).")
 
 class LLMEngine:
     """
@@ -78,17 +85,28 @@ class LLMEngine:
             api_key = self.api_key_google if "gemini" in lite_model else self.api_key_openrouter
             api_base = "https://openrouter.ai/api/v1" if "openrouter" in lite_model or "gpt-oss" in lite_model else None
             
-            # API-Aufruf mit JSON Mode
-            response = completion(
-                model=lite_model,
-                messages=messages,
-                api_key=api_key,
-                api_base=api_base,
-                temperature=0.85, 
-                max_tokens=600,
-                # Nutzt JSON Mode wo verfügbar (OpenAI, Gemini, etc.)
-                response_format={"type": "json_object"} 
-            )
+            # Prüfen, ob das Modell Structured Output unterstützt
+            # Gemini und aktuelle OpenAI Modelle tun das.
+            supports_schema = any(x in lite_model for x in ["gemini", "gpt-4", "gpt-3.5", "o1"])
+            
+            completion_args = {
+                "model": lite_model,
+                "messages": messages,
+                "api_key": api_key,
+                "api_base": api_base,
+                "temperature": 0.85, 
+                "max_tokens": 600
+            }
+
+            if supports_schema:
+                # "Real" JSON Schema Enforcement via Pydantic
+                completion_args["response_format"] = StoryResponse
+            else:
+                # Fallback für ältere/andere Modelle
+                completion_args["response_format"] = {"type": "json_object"}
+
+            # API-Aufruf
+            response = completion(**completion_args)
             
             content = response.choices[0].message.content
             parsed = self._clean_json(content)
@@ -102,6 +120,7 @@ class LLMEngine:
 
         except Exception as e:
             print(f"LLM Fehler: {e}")
+            # Debug: Full Traceback in Server Log is helpful
             import traceback
             traceback.print_exc()
             return get_fallback_scenario()
