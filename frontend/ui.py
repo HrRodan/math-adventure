@@ -109,7 +109,7 @@ with gr.Blocks(title="Mein Mathe-Abenteuer") as demo:
             theme_input = gr.Textbox(label="Thema", value="Ritterburg")
             model_dropdown = gr.Dropdown(
                 label="Erzähler", 
-                choices=["gemini-2.0-flash", "gemini-3-flash-preview", "openai/gpt-oss-120b"],
+                choices=["gemini-2.0-flash", "gemini-3-flash-preview", "gpt-4o-mini", "gpt-5-mini", "openai/gpt-oss-120b"],
                 value="gemini-3-flash-preview"
             )
             start_btn = gr.Button("Los geht's! 🚀", variant="primary")

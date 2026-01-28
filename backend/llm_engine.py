@@ -82,8 +82,22 @@ class LLMEngine:
                 lite_model = f"openai/{model}"
 
             # API-Key Wahl
-            api_key = self.api_key_google if "gemini" in lite_model else self.api_key_openrouter
-            api_base = "https://openrouter.ai/api/v1" if "openrouter" in lite_model or "gpt-oss" in lite_model else None
+            api_key = None
+            api_base = None
+            
+            if "gemini" in lite_model:
+                api_key = self.api_key_google
+            elif "openrouter" in lite_model or "gpt-oss" in lite_model:
+                api_key = self.api_key_openrouter
+                api_base = "https://openrouter.ai/api/v1"
+            elif "gpt" in lite_model: # Standard OpenAI models (gpt-4o, gpt-5-mini, etc.)
+                api_key = os.getenv("OPENAI_API_KEY")
+            
+            # Fallback if no key matches logic (though should be covered)
+            if not api_key:
+                 # Default to OpenRouter if obscure
+                 api_key = self.api_key_openrouter
+                 api_base = "https://openrouter.ai/api/v1"
             
             # Prüfen, ob das Modell Structured Output unterstützt
             # Gemini und aktuelle OpenAI Modelle tun das.
@@ -106,7 +120,10 @@ class LLMEngine:
                 completion_args["response_format"] = {"type": "json_object"}
 
             # API-Aufruf
-            response = completion(**completion_args)
+            response = completion(
+                **completion_args,
+                drop_params=True # Critical for models like o1/gpt-5 that restrict params
+            )
             
             content = response.choices[0].message.content
             parsed = self._clean_json(content)
