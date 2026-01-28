@@ -26,71 +26,74 @@ class LLMEngine:
         Entfernt Markdown-Codeblöcke und repariert einfache Formatfehler.
         """
         try:
-            return json.loads(text)
+            data = json.loads(text)
+            # Falls LLM eine Liste zurückgibt (z.B. [{}])
+            if isinstance(data, list) and len(data) > 0:
+                return data[0]
+            return data
         except:
             # Fallback: Suche nach JSON-Muster mit Regex
             match = re.search(r'\{.*\}', text, re.DOTALL)
             if match:
                 try:
-                    return json.loads(match.group(0))
+                    data = json.loads(match.group(0))
+                    if isinstance(data, list) and len(data) > 0:
+                        return data[0]
+                    return data
                 except:
                     pass
             return None
 
-    def generate_turn(self, history, model="gemini/gemini-2.0-flash", theme="Abenteuer"):
+    def generate_turn(self, history, model="gemini/gemini-3-flash-preview", theme="Abenteuer"):
         """
         Generiert das nächste Kapitel der Geschichte basierend auf dem bisherigen Verlauf.
-        
-        Args:
-            history (list): Liste der bisherigen Nachrichten (Context Window).
-            model (str): ID des zu verwendenden Modells.
-            theme (str): Das Thema der Geschichte.
-            
-        Returns:
-            dict: JSON-Objekt mit 'story', 'question' und 'answer'.
         """
         
-        # Zufallsauswahl des Aufgabentyps für Abwechslung
-        task_type = random.choice([
+        # Erweiterte Aufgabentypen für mehr Abwechslung
+        task_options = [
             "STANDARD (z.B. '7 + 8 = ?')",
             "GAP (z.B. '15 - ? = 9')",
             "CHAIN (3 Zahlen, z.B. '5 + 4 - 2 = ?')",
-            "TEXT (z.B. 'Das Doppelte von 6?')"
-        ])
+            "TEXT (z.B. 'Das Doppelte von 6?')",
+            "SEQUENCE (z.B. '2, 4, 6, ?' - Nächste Zahl)",
+            "MONEY (z.B. '3 Euro + 4 Euro')",
+            "ZERO (Rechnen mit Null, z.B. '5 + 0')"
+        ]
+        task_type = random.choice(task_options) 
         
-        # System-Prompt laden (ausgelagert für bessere Wartbarkeit)
+        # System-Prompt laden
         system_instructions = get_system_prompt(theme, task_type)
         
-        # Nachrichtenhistorie aufbauen
         messages = [{"role": "system", "content": system_instructions}] + history
         
         try:
-            # Modell-Mapping (Alias -> Echter Modellname für LiteLLM)
+            # Modell-Mapping
             lite_model = model
             if "gemini" in model and not model.startswith("gemini/"):
                 lite_model = f"gemini/{model}"
             elif "gpt" in model and not model.startswith("openai/"):
                 lite_model = f"openai/{model}"
 
-            # Passenden API-Key wählen
+            # API-Key Wahl
             api_key = self.api_key_google if "gemini" in lite_model else self.api_key_openrouter
             api_base = "https://openrouter.ai/api/v1" if "openrouter" in lite_model or "gpt-oss" in lite_model else None
             
-            # API-Aufruf (Sync)
+            # API-Aufruf mit JSON Mode
             response = completion(
                 model=lite_model,
                 messages=messages,
                 api_key=api_key,
                 api_base=api_base,
-                temperature=0.85, # Kreativität für Storytelling
+                temperature=0.85, 
                 max_tokens=600,
+                # Nutzt JSON Mode wo verfügbar (OpenAI, Gemini, etc.)
                 response_format={"type": "json_object"} 
             )
             
             content = response.choices[0].message.content
             parsed = self._clean_json(content)
             
-            # Validierung: Sind alle notwendigen Felder da?
+            # Validierung
             if not parsed or 'story' not in parsed or 'answer' not in parsed:
                 print(f"Warnung: Ungültiges JSON erhalten: {content}")
                 return get_fallback_scenario()

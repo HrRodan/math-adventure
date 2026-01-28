@@ -1,125 +1,126 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;800&display=swap');
 
-/* --- Globale Einstellungen (Forced Light Mode) --- */
-:root, .dark, body, .gradio-container {
-    --body-text-color: #2c3e50;
-    --background-fill-primary: #fdfbf7;
-    --block-background-fill: #fff;
-    --input-background-fill: #fff;
+/* --- Globale Variablen --- */
+:root {
+    --font-primary: 'Lexend', sans-serif;
+    --text-color: #2c3e50;
+    --bg-color: #fdfbf7;
+    --accent-color: #e67e22;
+    --success-color: #2ecc71;
+    --error-color: #e74c3c;
+    --box-border-radius: 20px;
+    --base-font-size: 22px;
 }
 
-body, .gradio-container, .prose, .markdown-text, p, div, span, label {
-    font-family: 'Lexend', sans-serif !important;
-    font-size: 22px !important;
+/* --- Grundlayout --- */
+body, .gradio-container, .prose {
+    font-family: var(--font-primary) !important;
+    font-size: var(--base-font-size) !important;
     line-height: 1.6 !important;
-    color: #2c3e50 !important;
-    background-color: transparent !important;
+    color: var(--text-color) !important;
+    background-color: var(--bg-color) !important;
 }
 
-.gradio-container {
-    background-color: #fdfbf7 !important;
-}
-
-/* --- Typografie --- */
 h1 {
-    font-size: 3.5em !important;
-    color: #e67e22 !important;
-    text-align: center;
-    margin-bottom: 0.5em;
+    font-size: 3.5rem !important;
     font-weight: 800 !important;
+    color: var(--accent-color) !important;
+    text-align: center;
+    margin-bottom: 1rem !important;
 }
 
-/* --- Chatbot Styles --- */
+/* --- Chatbot --- */
 .message-wrap .message, .chatbot .message {
-    font-size: 24px !important;
-    line-height: 1.6 !important;
-    padding: 20px !important;
-    border-radius: 20px !important;
+    font-size: 1.2rem !important;
+    padding: 1.5rem !important;
+    border-radius: var(--box-border-radius) !important;
     border: 2px solid #eee !important;
-    color: #2c3e50 !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
+.message.user { background-color: #e8f5e9 !important; border-bottom-right-radius: 4px !important; }
+.message.bot { background-color: #ffffff !important; border-bottom-left-radius: 4px !important; }
 
-.message.user {
-    background-color: #e8f5e9 !important;
-    border-bottom-right-radius: 0 !important;
-}
+.message-buttons-right, button[aria-label="Copy"], button[aria-label="Like"] { display: none !important; }
 
-.message.bot {
-    background-color: #ffffff !important;
-    border-bottom-left-radius: 0 !important;
-}
-
-/* Störende Elemente ausblenden */
-.message-buttons-right, button[aria-label="Copy"], button[aria-label="Like"] {
-    display: none !important;
-}
-
-/* --- Inputs & Buttons --- */
-input, textarea, .gr-box, .dropdown-header {
-    font-size: 24px !important;
-    border-radius: 15px !important;
-    color: #2c3e50 !important; 
-    background-color: #ffffff !important;
-    border: 3px solid #f39c12 !important;
-}
-
-button {
-    font-size: 26px !important;
-    font-weight: 700 !important;
-    padding: 15px 30px !important;
-    border-radius: 50px !important;
-    margin-top: 15px !important;
-    color: white !important;
-}
-
-button.primary {
-    background-color: #2ecc71 !important;
-    border: none !important;
-    box-shadow: 0 6px 0 #27ae60 !important;
-}
-button.primary:active {
-    transform: translateY(6px) !important;
-    box-shadow: none !important;
-}
-
-button.secondary {
-    background-color: #3498db !important;
-    box-shadow: 0 6px 0 #2980b9 !important;
-}
-button.secondary:active {
-    transform: translateY(6px) !important;
-    box-shadow: none !important;
-}
-
-/* --- Die Mathe-Box --- */
+/* --- Mathe Box (Notizzettel-Look) --- */
 .math-box {
-    background-color: #fff9c4 !important;
-    border: 4px dashed #fbc02d !important;
-    border-radius: 20px;
-    padding: 15px;
-    margin: 15px 0 !important;
+    background-color: #fffde7; /* Post-it Gelb */
+    border: 2px solid #f9a825;
+    border-radius: 10px; /* Weniger rund, mehr wie Papier */
+    padding: 20px;
+    margin: 20px 0 !important;
     text-align: center !important;
     color: #e65100 !important;
+    box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
+    transform: rotate(-1deg); /* Leichter Twist */
+    max-width: 90%;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 .math-header {
-    font-size: 20px !important;
-    font-weight: bold !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 15px !important;
     color: #f57f17 !important;
+    border-bottom: 2px dashed #fbc02d;
+    padding-bottom: 5px;
+    display: inline-block;
 }
 
 .math-content {
-    font-size: 32px !important;
+    font-size: 2.8rem !important;
     font-weight: 800 !important;
     color: #d35400 !important;
-    font-family: 'Lexend', monospace !important;
+    font-family: 'Lexend', monospace !important; /* Zahlen sollen klar sein */
 }
 
-/* Feedback Status */
-.feedback-wrong { background-color: #ffcdd2 !important; border-color: #e53935 !important; }
+/* Feedback Farben */
+.feedback-wrong {
+    background-color: #ffebee !important;
+    border-color: var(--error-color) !important;
+    transform: rotate(1deg); /* Wackelt bei Fehler */
+}
 .feedback-wrong .math-header, .feedback-wrong .math-content { color: #b71c1c !important; }
 
-.feedback-correct { background-color: #c8e6c9 !important; border-color: #43a047 !important; }
+.feedback-correct {
+    background-color: #e8f5e9 !important;
+    border-color: var(--success-color) !important;
+    transform: scale(1.02); /* Pop-Effekt */
+}
 .feedback-correct .math-header, .feedback-correct .math-content { color: #1b5e20 !important; }
+
+/* --- Inputs & Buttons --- */
+input, textarea, .gr-box, .dropdown-header {
+    font-size: 1.2rem !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    border: 3px solid #f39c12 !important;
+    background-color: #fff !important;
+}
+
+button {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    padding: 15px 30px !important;
+    border-radius: 50px !important;
+    border: none !important;
+    cursor: pointer !important;
+    color: white !important;
+    margin-top: 10px !important;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2) !important;
+}
+button:active { transform: translateY(4px) !important; box-shadow: none !important; }
+
+button.primary { background-color: var(--btn-primary-bg) !important; }
+button.secondary { background-color: var(--btn-secondary-bg) !important; }
+
+.star-counter {
+    font-size: 2rem !important;
+    color: #f1c40f !important;
+    font-weight: 800 !important;
+    text-align: right;
+    padding: 10px;
+    text-shadow: 1px 1px 0 #fff;
+}

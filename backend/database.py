@@ -1,11 +1,19 @@
 import os
+import sys
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
-# Ensure data directory exists
+# Ensure absolute path to data directory
+# BASE_DIR = /home/devuser/gemini/math-adventure
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, 'data', 'adventure.db')
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+DB_PATH = os.path.join(DATA_DIR, 'adventure.db')
+
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+print(f"DATABASE PATH: {DB_PATH}", file=sys.stderr)
 
 Base = declarative_base()
 
@@ -15,13 +23,14 @@ class GameSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     theme = Column(String)
     model = Column(String)
+    stars = Column(Integer, default=0) # Die neue Spalte
     messages = relationship("Message", back_populates="session", cascade="all, delete-orphan")
 
 class Message(Base):
     __tablename__ = 'messages'
     id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey('sessions.id'))
-    role = Column(String) # 'user' or 'assistant' or 'system'
+    role = Column(String) 
     content = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
     
@@ -29,7 +38,11 @@ class Message(Base):
 
 # Setup Engine
 engine = create_engine(f'sqlite:///{DB_PATH}', echo=False)
+
+# Force recreation if schema mismatch (simple hack for dev)
+# In production, use Alembic. Here, we just try to create.
 Base.metadata.create_all(engine)
+
 SessionLocal = sessionmaker(bind=engine)
 
 def get_db():
@@ -64,8 +77,8 @@ def get_history(session_id: int):
 
 def get_all_sessions():
     db = SessionLocal()
+    # Hier knallt es, wenn 'stars' fehlt
     sessions = db.query(GameSession).order_by(GameSession.created_at.desc()).all()
-    # Erstelle eine Liste von Strings für das Dropdown
     result = [(s.id, f"Abenteuer {s.id}: {s.theme} ({s.created_at.strftime('%d.%m %H:%M')})") for s in sessions]
     db.close()
     return result

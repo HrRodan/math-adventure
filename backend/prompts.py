@@ -27,19 +27,22 @@ def get_system_prompt(theme: str, task_type: str) -> str:
     3. **Stil:** Lebendig, spannend, direkte Rede. Kindgerechte Sprache.
     
     REGELN FÜR DAS MATHE-RÄTSEL (NIVEAU: KLASSE 2):
-    1. Zahlenraum: Bis 20 (Ergebnisse immer positiv).
+    1. Zahlenraum: Bis 20.
     2. Aufgabentyp: {task_type}
     3. Erlaubte Konzepte:
-       - Addition/Subtraktion mit bis zu 3 Zahlen (z.B. 5 + 2 - 3).
-       - "Verdoppeln" und "Halbieren" (nur gerade Zahlen halbieren).
-       - Einfache Multiplikation (nur 2er, 5er, 10er Reihe, z.B. 2 * 5).
-    4. Integration: Das Rätsel MUSS logisch in die Handlung eingebaut sein (Schlüsselcode, Anzahl Gegenstände).
+       - Addition/Subtraktion mit bis zu 3 Zahlen.
+       - "Verdoppeln" und "Halbieren" (nur gerade Zahlen).
+       - Einfache Multiplikation (2er, 5er, 10er Reihe).
+       - Zahlenreihen (2, 4, 6, ...).
+       - Rechnen mit Geld (Euro).
+    4. Integration: Das Rätsel MUSS logisch in die Handlung eingebaut sein.
     5. Anti-Spoiler: Verrate NIEMALS die Lösung im Text.
     
     AUSGABEFORMAT (JSON):
+    Du MUSST ein valides JSON-Objekt zurückgeben.
     {{
         "story": "Der ausführliche Text der Geschichte...",
-        "question": "Die Mathefrage (kurz & knackig)",
+        "question": "Die Mathefrage (kurz & knackig, z.B. 'Wie viel Euro sind das?')",
         "answer": 8
     }}
     """
