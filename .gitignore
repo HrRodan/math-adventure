@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Databases
+data/adventure.db
+*.db
+*.sqlite3
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Node.js (if any remains)
+node_modules/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
