@@ -89,3 +89,12 @@ def get_session_by_id(session_id: int):
     theme, model = session.theme, session.model
     db.close()
     return theme, model
+
+def delete_session(session_id: int):
+    """Löscht eine Sitzung und alle zugehörigen Nachrichten."""
+    db = SessionLocal()
+    session = db.query(GameSession).filter(GameSession.id == session_id).first()
+    if session:
+        db.delete(session)
+        db.commit()
+    db.close()

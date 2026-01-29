@@ -2,10 +2,11 @@ import os
 import json
 import random
 import re
+import time
 from litellm import completion
 from dotenv import load_dotenv
+from backend.prompts import get_system_prompt
 from pydantic import BaseModel, Field
-from backend.prompts import get_system_prompt, get_fallback_scenario
 
 # Umgebungsvariablen laden
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -18,28 +19,17 @@ class StoryResponse(BaseModel):
     answer: int = Field(..., description="Die numerische Lösung der Aufgabe (Ganzzahl).")
 
 class LLMEngine:
-    """
-    Zentrale Klasse für die Interaktion mit verschiedenen LLM-Providern.
-    Abstrahiert die API-Aufrufe und bereinigt die Antworten.
-    """
-    
     def __init__(self):
         self.api_key_google = os.getenv("GEMINI_API_KEY")
         self.api_key_openrouter = os.getenv("OPENROUTER_API_KEY")
         
     def _clean_json(self, text):
-        """
-        Versucht, ein valides JSON-Objekt aus dem Antworttext zu extrahieren.
-        Entfernt Markdown-Codeblöcke und repariert einfache Formatfehler.
-        """
         try:
             data = json.loads(text)
-            # Falls LLM eine Liste zurückgibt (z.B. [{}])
             if isinstance(data, list) and len(data) > 0:
                 return data[0]
             return data
         except:
-            # Fallback: Suche nach JSON-Muster mit Regex
             match = re.search(r'\{.*\}', text, re.DOTALL)
             if match:
                 try:
@@ -53,91 +43,113 @@ class LLMEngine:
 
     def generate_turn(self, history, model="gemini/gemini-3-flash-preview", theme="Abenteuer"):
         """
-        Generiert das nächste Kapitel der Geschichte basierend auf dem bisherigen Verlauf.
+        Generiert das nächste Kapitel.
+        Nutzt statischen System-Prompt für Caching.
+        Packt dynamische Infos in den User-Prompt.
         """
         
-        # Erweiterte Aufgabentypen für mehr Abwechslung
-        task_options = [
-            "STANDARD (z.B. '7 + 8 = ?')",
-            "GAP (z.B. '15 - ? = 9')",
-            "CHAIN (3 Zahlen, z.B. '5 + 4 - 2 = ?')",
-            "TEXT (z.B. 'Das Doppelte von 6?')",
-            "SEQUENCE (z.B. '2, 4, 6, ?' - Nächste Zahl)",
-            "MONEY (z.B. '3 Euro + 4 Euro')",
-            "ZERO (Rechnen mit Null, z.B. '5 + 0')"
+        # System-Prompt (Statisch für Caching)
+        system_instructions = get_system_prompt()
+        
+        # User-Prompt (Dynamisch)
+        # Hier geben wir Few-Shot Beispiele für gute Aufgaben
+        math_examples = """
+        BEISPIELE FÜR GUTE AUFGABEN (Variiere den Typ passend zur Situation!):
+        - Situation: Helden finden Kisten. -> "3 Kisten hier, 8 dort. Wie viele total?" (Standard)
+        - Situation: Brücke fehlt ein Stück. -> "Die Brücke muss 15m lang sein, wir haben 9m. Wie viel fehlt?" (Lücke)
+        - Situation: Monster greifen an. -> "2 Wellen mit je 4 Monstern." (Multiplikation)
+        - Situation: Schatzkammer. -> "Ein Rubin ist 5 Goldstücke wert. Wie viel sind 3 Rubine?" (Währung/Sachaufgabe)
+        - Situation: Code-Schloss. -> "Die Zahlenfolge geht: 3, 6, 9... wie heißt die nächste?" (Reihe)
+        
+        WICHTIG: Nutze KEINE Aufgaben mit 0 (z.B. 5+0). Fordere das Kind! (Zehnerübergang ok).
+        """
+
+        if not history:
+            user_message = f"""
+            START EINER NEUEN GESCHICHTE.
+            Thema: "{theme}"
+            
+            Anweisung:
+            1. Führe Helden und Ziel ein.
+            2. Schreibe Kapitel 1.
+            3. {math_examples}
+            """
+        else:
+            # Wir bauen die Historie in den User-Prompt ein
+            # (Bei manchen Modellen besser als separate Messages für Caching)
+            history_text = "\n\n".join([f"Kapitel {i+1}: {msg['content']}" for i, msg in enumerate(history) if msg['role'] == 'assistant'])
+            
+            user_message = f"""
+            FORTSETZUNG.
+            
+            WAS BISHER GESCHAH:
+            {history_text}
+            
+            ANWEISUNG:
+            Erzähle weiter. Bleib beim Thema "{theme}".
+            {math_examples}
+            """
+
+        messages = [
+            {"role": "system", "content": system_instructions},
+            {"role": "user", "content": user_message}
         ]
-        task_type = random.choice(task_options) 
         
-        # System-Prompt laden
-        system_instructions = get_system_prompt(theme, task_type)
+        # Modell-Setup
+        lite_model = model
+        if "gemini" in model and not model.startswith("gemini/"):
+            lite_model = f"gemini/{model}"
+        elif "gpt" in model and not model.startswith("openai/"):
+            lite_model = f"openai/{model}"
+
+        api_key = None
+        api_base = None
         
-        messages = [{"role": "system", "content": system_instructions}] + history
+        if "gemini" in lite_model:
+            api_key = self.api_key_google
+        elif "openrouter" in lite_model or "gpt-oss" in lite_model:
+            api_key = self.api_key_openrouter
+            api_base = "https://openrouter.ai/api/v1"
+        elif "gpt" in lite_model:
+            api_key = os.getenv("OPENAI_API_KEY")
         
-        try:
-            # Modell-Mapping
-            lite_model = model
-            if "gemini" in model and not model.startswith("gemini/"):
-                lite_model = f"gemini/{model}"
-            elif "gpt" in model and not model.startswith("openai/"):
-                lite_model = f"openai/{model}"
+        if not api_key:
+            # Fallback
+            api_key = self.api_key_openrouter
+            api_base = "https://openrouter.ai/api/v1"
 
-            # API-Key Wahl
-            api_key = None
-            api_base = None
-            
-            if "gemini" in lite_model:
-                api_key = self.api_key_google
-            elif "openrouter" in lite_model or "gpt-oss" in lite_model:
-                api_key = self.api_key_openrouter
-                api_base = "https://openrouter.ai/api/v1"
-            elif "gpt" in lite_model: # Standard OpenAI models (gpt-4o, gpt-5-mini, etc.)
-                api_key = os.getenv("OPENAI_API_KEY")
-            
-            # Fallback if no key matches logic (though should be covered)
-            if not api_key:
-                 # Default to OpenRouter if obscure
-                 api_key = self.api_key_openrouter
-                 api_base = "https://openrouter.ai/api/v1"
-            
-            # Prüfen, ob das Modell Structured Output unterstützt
-            # Gemini und aktuelle OpenAI Modelle tun das.
-            supports_schema = any(x in lite_model for x in ["gemini", "gpt-4", "gpt-3.5", "o1"])
-            
-            completion_args = {
-                "model": lite_model,
-                "messages": messages,
-                "api_key": api_key,
-                "api_base": api_base,
-                "temperature": 0.85, 
-                "max_tokens": 600
-            }
+        supports_schema = any(x in lite_model for x in ["gemini", "gpt-4", "gpt-3.5", "o1"])
+        
+        completion_args = {
+            "model": lite_model,
+            "messages": messages,
+            "api_key": api_key,
+            "api_base": api_base,
+            "temperature": 0.85, 
+            "max_tokens": 800,
+            "drop_params": True 
+        }
 
-            if supports_schema:
-                # "Real" JSON Schema Enforcement via Pydantic
-                completion_args["response_format"] = StoryResponse
-            else:
-                # Fallback für ältere/andere Modelle
-                completion_args["response_format"] = {"type": "json_object"}
+        if supports_schema:
+            completion_args["response_format"] = StoryResponse
+        else:
+            completion_args["response_format"] = {"type": "json_object"}
 
-            # API-Aufruf
-            response = completion(
-                **completion_args,
-                drop_params=True # Critical for models like o1/gpt-5 that restrict params
-            )
-            
-            content = response.choices[0].message.content
-            parsed = self._clean_json(content)
-            
-            # Validierung
-            if not parsed or 'story' not in parsed or 'answer' not in parsed:
-                print(f"Warnung: Ungültiges JSON erhalten: {content}")
-                return get_fallback_scenario()
+        # Retry Loop (3 Versuche)
+        for attempt in range(3):
+            try:
+                response = completion(**completion_args)
+                content = response.choices[0].message.content
+                parsed = self._clean_json(content)
                 
-            return parsed
+                if parsed and 'story' in parsed and 'answer' in parsed:
+                    return parsed
+                else:
+                    print(f"Versuch {attempt+1}: Ungültiges JSON: {content}")
+            
+            except Exception as e:
+                print(f"Versuch {attempt+1}: API Fehler: {e}")
+                time.sleep(1) # Kurze Pause
 
-        except Exception as e:
-            print(f"LLM Fehler: {e}")
-            # Debug: Full Traceback in Server Log is helpful
-            import traceback
-            traceback.print_exc()
-            return get_fallback_scenario()
+        # Wenn alles scheitert: KEIN Fallback, sondern None (Controller wirft Fehler)
+        return None
