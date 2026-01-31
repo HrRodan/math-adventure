@@ -2,15 +2,15 @@
 
 **Ein interaktives Lernspiel für Erstleser (6-8 Jahre)**
 
-Mathe-Abenteuer ist eine KI-gestützte Web-Anwendung, die endlose, personalisierte Geschichten generiert. Um in der Geschichte voranzukommen, müssen die Kinder kleine Mathe-Rätsel lösen (Klasse 2 Niveau).
+Mathe-Abenteuer ist eine KI-gestützte Web-Anwendung, die endlose, personalisierte Geschichten generiert. Um in der Geschichte voranzukommen, müssen die Kinder kleine Mathe-Rätsel lösen (Klasse 2 Niveau: bis 100, 10er Übergang).
 
 ## ✨ Features
 
 *   **Unendliche Geschichten:** Wähle ein Thema (z.B. "Dinosaurier", "Weltraum"), und die KI schreibt ein individuelles Buch für dich.
-*   **Intelligente Mathe-Rätsel:** Die KI integriert Aufgaben logisch in die Handlung ("Wir brauchen 15 Bretter, haben aber nur 8...").
+*   **Intelligente Mathe-Rätsel:** Die KI integriert Aufgaben logisch in die Handlung. Die Aufgaben passen sich der Situation an (Kettenaufgaben, Lückentexte, Sachaufgaben).
 *   **Multi-Model Support:** Nutze modernste KIs via OpenRouter, OpenAI oder Google Gemini.
-*   **Fortschritt:** Sammle Sterne ⭐ für richtige Antworten. Alte Abenteuer werden gespeichert.
-*   **Kindgerecht:** Große Schrift, Emojis, einfache Bedienung.
+*   **Hinter die Kulissen:** Ein ausklappbarer Bereich ("Story-Plan") zeigt, was die KI intern plant (den roten Faden).
+*   **Kindgerecht:** Große Schrift, minimalistisches Design, einfache Bedienung.
 
 ## 🏗 Projektstruktur
 
@@ -23,7 +23,12 @@ math-adventure/
 │   ├── prompts.py          # Statische System-Prompts
 │   └── database.py         # SQLAlchemy Modelle
 ├── frontend/               # Benutzeroberfläche
-...
+│   ├── ui.py               # Gradio Interface
+│   └── assets/
+│       └── styles.css      # CSS Styling
+├── data/                   # Datenbank
+│   └── adventure.db        # SQLite Datei
+└── main.py                 # Start-Skript
 ```
 
 ## 🧠 Prompt Engineering & Architektur
@@ -32,19 +37,13 @@ Das Herzstück der Anwendung ist eine zweistufige Prompt-Strategie, die **Perfor
 
 ### 1. Der System-Prompt (Statisch)
 Der System-Prompt (`backend/prompts.py`) ist konstant und ändert sich nie.
-*   **Vorteil:** Moderne LLMs (wie Gemini 1.5/2.0) können diesen riesigen Textblock **cachen**, was Anfragen extrem beschleunigt und Kosten spart.
-*   **Inhalt:**
-    *   **Persona:** "Bestseller-Kinderbuchautor".
-    *   **Regeln:** Sprache (Deutsch), Stil (Emojis), JSON-Format.
-    *   **Mathe-Beispiele (Multi-Shot):** Eine Liste verschiedener Aufgabentypen (Subtraktion, Lücken, Kettenaufgaben mit 3 Zahlen), an denen sich das Modell orientiert.
+*   **Vorteil:** Moderne LLMs können diesen riesigen Textblock **cachen**, was Anfragen extrem beschleunigt.
+*   **Inhalt:** Persona, Mathe-Regeln (0-100), und Multi-Shot Beispiele.
 
 ### 2. Der User-Prompt (Dynamisch)
 Dieser Teil wird bei jedem Zug neu generiert (`backend/llm_engine.py`).
-*   **Inhalt:**
-    *   **Thema:** Das vom Kind gewählte Szenario (z.B. "Ritterburg").
-    *   **Historie:** Eine Zusammenfassung der bisherigen Geschichte ("Was bisher geschah").
-    *   **Anweisung:** "Erzähle weiter und integriere ein passendes Mathe-Rätsel."
-*   **Freiheit:** Wir zwingen das Modell nicht in starre Schablonen ("Mache jetzt eine Plus-Aufgabe"), sondern lassen es anhand der *Handlung* entscheiden, welcher der gelernten Aufgabentypen am besten passt.
+*   **Start:** Die KI wird aufgefordert, einen internen `story_arc` (Handlungsplan) zu entwerfen und Kapitel 1 zu schreiben.
+*   **Fortsetzung:** Der `story_arc` wird als "Regieanweisung" mitgegeben, damit die KI den roten Faden nicht verliert. Die KI entscheidet selbst, welcher Aufgabentyp zur aktuellen Handlung passt.
 
 ## 🚀 Installation & Start
 
@@ -73,12 +72,6 @@ Dieser Teil wird bei jedem Zug neu generiert (`backend/llm_engine.py`).
     ```
 
     Öffne `http://localhost:3000` im Browser.
-
-## 🤖 Entwicklung
-
-*   **Neue Modelle:** Füge sie einfach in `backend/config.py` hinzu.
-*   **Prompts:** Änderungen an der "Persönlichkeit" in `backend/prompts.py`.
-*   **Tests:** `uv run tests/test_coherence.py` prüft die Story-Logik.
 
 ## 📝 Lizenz
 MIT License. Entwickelt für Bildungszwecke.
