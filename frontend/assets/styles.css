@@ -21,13 +21,13 @@ h1 {
 
 /* --- Mathe Box (Schlicht & Edel) --- */
 .math-box {
-    background-color: var(--background-fill-secondary);
-    border: 2px solid var(--border-color-primary);
+    background-color: #fcfcfc !important; /* Fast Weiß */
+    border: 2px solid #dfe6e9 !important; /* Sehr dezenter Rand */
     border-radius: 8px;
     padding: 20px;
     margin: 20px 0 !important;
     text-align: center !important;
-    color: var(--body-text-color);
+    color: inherit !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.03); /* Minimaler Schatten */
 }
 
@@ -36,14 +36,14 @@ h1 {
     font-weight: 600;
     text-transform: uppercase;
     margin-bottom: 8px;
-    color: var(--block-label-text-color);
+    color: #636e72 !important; /* Dunkelgrau */
     letter-spacing: 1px;
 }
 
 .math-content {
     font-size: 1.8rem !important;
     font-weight: 700;
-    color: #2d3436 !important;
+    color: inherit !important;
 }
 
 /* Feedback */

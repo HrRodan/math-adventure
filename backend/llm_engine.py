@@ -1,7 +1,6 @@
 import json
 import re
 import time
-import random
 import os
 from litellm import completion
 from pydantic import BaseModel, Field
@@ -26,24 +25,13 @@ class LLMEngine:
         pass 
 
     def _clean_json(self, text):
-        """
-        Versucht, aus einem rohen String ein valides JSON-Objekt zu extrahieren.
-        
-        Args:
-            text (str): Die Antwort des LLMs (kann Markdown-Blöcke ```json enthalten).
-            
-        Returns:
-            dict | None: Das geparste JSON-Objekt oder None bei Fehler.
-        """
+        """Versucht, ein valides JSON-Objekt aus dem Antworttext zu extrahieren."""
         try:
-            # 1. Direkter Versuch
             data = json.loads(text)
             if isinstance(data, list) and len(data) > 0:
                 return data[0]
             return data
         except:
-            # 2. Fallback: Suche nach {...} Muster mittels Regex
-            # Dies hilft, wenn das LLM Text vor oder nach dem JSON schreibt.
             match = re.search(r'\{.*\}', text, re.DOTALL)
             if match:
                 try:
@@ -54,23 +42,9 @@ class LLMEngine:
 
     def generate_turn(self, history, model, theme="Abenteuer"):
         """
-        Generiert den nächsten Spielzug (Story + Rätsel).
-        
-        Ablauf:
-        1. Identifiziert den Provider und lädt den API-Key.
-        2. Baut den Prompt (Statischer System-Teil + Dynamischer User-Teil).
-        3. Sendet Request mit Retry-Logik (Exponential Backoff).
-        4. Validiert das JSON-Ergebnis.
-        
-        Args:
-            history (list): Liste der bisherigen Nachrichten (für Kontext).
-            model (str): Name des zu verwendenden Modells.
-            theme (str): Das Thema der Geschichte.
-            
-        Returns:
-            dict | None: {'story': ..., 'question': ..., 'answer': ...} oder None bei Totalausfall.
+        Generiert den nächsten Spielzug. 
+        Gibt dem Modell maximale Freiheit bei der Wahl der Matheaufgabe basierend auf dem Kontext.
         """
-        # --- 1. Provider Setup ---
         provider = get_provider_for_model(model)
         if not provider:
             print(f"ERROR: Model '{model}' not configured.")
@@ -78,43 +52,25 @@ class LLMEngine:
 
         api_key = provider.get_api_key()
         if not api_key:
-            print(f"ERROR: No API Key for {provider.id}")
             return None
 
-        # --- 2. Prompt Engineering ---
-        # Statischer System-Prompt für besseres Caching
+        # 1. Statischer System-Prompt (Cache-optimiert, enthält Multi-Shot Beispiele)
         system_msg = get_system_prompt()
         
-        # Dynamischer User-Prompt (Few-Shot Beispiele)
-        task_options = ["STANDARD", "GAP", "CHAIN", "TEXT", "SEQUENCE", "MONEY"]
-        task_type = random.choice(task_options)
-        
-        instructions = f"""
-        THEMA: "{theme}"
-        AUFGABENTYP: {task_type}
-        
-        Beispiele:
-        - "3 Kisten hier, 8 dort. Wie viele total?" (Standard)
-        - "Wir haben 9m Seil, brauchen 15m. Wie viel fehlt?" (Lücke) 
-        
-        Wichtig: Nutze KEINE 0-Aufgaben. Währung passend zur Story (Gold, Kristalle, Smaragde).
-        """
-        
+        # 2. Dynamischer User-Prompt (Nur Kontext, keine starren Rails)
         if not history:
-            user_msg = f"START EINER NEUEN GESCHICHTE.\n{instructions}\n\nFühre Helden ein."
+            user_msg = f"THEMA: '{theme}'\n\nFühre die Helden ein, starte das Abenteuer und stelle das erste Mathe-Rätsel!"
         else:
-            # Wir bauen die Historie als Text zusammen, statt message-Objekte zu übergeben.
-            # Das ist oft robuster bei Modell-Wechseln.
+            # Historie für das Modell aufbereiten
             hist_txt = "\n\n".join([f"Kapitel {i+1}: {m['content']}" for i, m in enumerate(history) if m['role'] == 'assistant'])
-            user_msg = f"FORTSETZUNG.\nWAS BISHER GESCHAH:\n{hist_txt}\n\nANWEISUNG:\n{instructions}\n\nErzähle weiter!"
+            user_msg = f"THEMA: '{theme}'\n\nWAS BISHER GESCHAH:\n{hist_txt}\n\nErzähle die Geschichte weiter und baue ein passendes Mathe-Rätsel ein."
 
         messages = [
             {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg}
         ]
 
-        # --- 3. Modell-Parameter ---
-        # Konstruktion der LiteLLM-Modell-ID (z.B. "openrouter/openai/gpt-4")
+        # Modell-ID & Parameter
         if provider.litellm_prefix and not model.startswith(provider.litellm_prefix):
             lite_model = f"{provider.litellm_prefix}{model}"
         else:
@@ -126,7 +82,7 @@ class LLMEngine:
             "api_key": api_key,
             "max_tokens": 800,
             "response_format": StoryResponse,
-            "drop_params": True # Ignoriert nicht unterstützte Parameter (z.B. bei o1)
+            "drop_params": True
         }
 
         if provider.base_url:
@@ -137,23 +93,16 @@ class LLMEngine:
 
         print(f"DEBUG: LiteLLM Call -> model='{lite_model}'")
         
-        # --- 4. Ausführung mit Retry & Backoff ---
+        # Retry Loop mit Backoff
         for attempt in range(3):
             try:
                 response = completion(**completion_args)
                 content = response.choices[0].message.content
                 parsed = self._clean_json(content)
-                
                 if parsed and 'story' in parsed:
                     return parsed
-                else:
-                    print(f"Warning (Attempt {attempt+1}): Invalid JSON received.")
             except Exception as e:
                 print(f"Error (Attempt {attempt+1}) calling {lite_model}: {e}")
-                # Exponentielles Backoff: 2s -> 4s -> 8s
-                # Hilft besonders bei 503 Overloaded Fehlern
-                sleep_time = 2 * (2 ** attempt)
-                time.sleep(sleep_time)
+                time.sleep(2 * (2 ** attempt))
 
-        print("CRITICAL: All attempts failed.")
         return None
