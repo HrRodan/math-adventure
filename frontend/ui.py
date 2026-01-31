@@ -40,28 +40,27 @@ def handle_delete(session_desc, session_mapping):
 def start_new_game(theme, model_name):
     if not model_name: model_name = get_all_models()[0]
         
-    session_id, data, stars, arc = controller.start_new_game(theme, model_name) # Arc empfangen
+    session_id, data, arc = controller.start_new_game(theme, model_name) # Kein star_return
     
     if not data:
-        return (None, None, None, None, format_math_box("Fehler"), "", gr.update(), gr.update(), theme, model_name, "⭐ 0", "Fehler")
+        return (None, None, None, None, format_math_box("Fehler"), "", gr.update(), gr.update(), theme, model_name, "Fehler")
 
     story_text = f"**ABENTEUER START: {theme.upper()}**\n\n{append_question_to_story(data['story'], data['question'])}"
     chat_history = [{"role": "assistant", "content": story_text}]
     
-    # Arc formatieren
     arc_text = f"**Geheimer Plan des Erzählers:**\n\n{arc}"
     
     return (
         session_id, data['answer'], data['question'], chat_history, 
         format_math_box(data['question']), "", 
         gr.update(visible=False), gr.update(visible=True), theme, model_name,
-        f"⭐ {stars}", arc_text # Arc Output
+        arc_text
     )
 
 def load_existing_game(session_desc, session_mapping):
-    if not session_desc: return [None] * 12
+    if not session_desc: return [None] * 11
     s_id = session_mapping[session_desc]
-    theme, model_name, raw_history, last_data, stars, arc = controller.load_game(s_id) # Arc empfangen
+    theme, model_name, raw_history, last_data, arc = controller.load_game(s_id) # Kein star_return
     
     ui_history = []
     for m in raw_history:
@@ -77,22 +76,21 @@ def load_existing_game(session_desc, session_mapping):
             ui_history.append({"role": "user", "content": content})
             
     q_text = last_data.get('question', '...')
-    
     arc_text = f"**Geheimer Plan des Erzählers:**\n\n{arc}"
     
     return (
         s_id, last_data['answer'], q_text, ui_history, 
         format_math_box(q_text), "", 
         gr.update(visible=False), gr.update(visible=True), theme, model_name,
-        f"⭐ {stars}", arc_text # Arc Output
+        arc_text
     )
 
 def submit_answer(user_input, session_id, expected_answer, current_q_text, chat_history, theme, model_name):
-    is_correct, new_data, stars = controller.submit_answer(session_id, user_input, expected_answer, model_name, theme)
+    is_correct, new_data = controller.submit_answer(session_id, user_input, expected_answer, model_name, theme) # Kein star_return
     
     if not is_correct:
         html = format_math_box(current_q_text, state="wrong", header="Leider falsch - Probier es nochmal!")
-        return session_id, expected_answer, current_q_text, chat_history, html, user_input, gr.update(), gr.skip()
+        return session_id, expected_answer, current_q_text, chat_history, html, user_input, gr.update()
     
     chat_history.append({"role": "user", "content": f"Antwort: {user_input}"})
     chat_history.append({"role": "assistant", "content": append_question_to_story(new_data['story'], new_data['question'])})
@@ -100,7 +98,7 @@ def submit_answer(user_input, session_id, expected_answer, current_q_text, chat_
     new_q = new_data['question']
     html = format_math_box(new_q, state="correct", header="SUPER GEMACHT!")
     
-    return session_id, new_data['answer'], new_q, chat_history, html, "", gr.update(), f"⭐ {stars}" # Skip Arc update
+    return session_id, new_data['answer'], new_q, chat_history, html, "", gr.update()
 
 def reset_to_start():
     return gr.update(visible=True), gr.update(visible=False)
@@ -114,7 +112,7 @@ with gr.Blocks(title="Mein Mathe-Abenteuer") as demo:
     
     with gr.Row():
         gr.HTML("<h1>✨ Mein Mathe-Abenteuer ✨</h1>", scale=4)
-        star_display = gr.Markdown("⭐ 0", elem_classes="star-counter")
+        # Kein star_display mehr
     
     # Start
     with gr.Row(variant="panel") as setup_row:
@@ -136,7 +134,6 @@ with gr.Blocks(title="Mein Mathe-Abenteuer") as demo:
     with gr.Column(visible=False) as game_row:
         chatbot = gr.Chatbot(label="Deine Geschichte", height=500, buttons=[])
         
-        # NEU: Story Arc Accordion
         with gr.Accordion("🕵️ Blick hinter die Kulissen (Story-Plan)", open=False):
             arc_display = gr.Markdown("Noch kein Plan...")
         
@@ -154,14 +151,14 @@ with gr.Blocks(title="Mein Mathe-Abenteuer") as demo:
     start_btn.click(
         fn=start_new_game, 
         inputs=[theme_input, model_dropdown], 
-        outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, setup_row, game_row, current_theme, current_model, star_display, arc_display],
+        outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, setup_row, game_row, current_theme, current_model, arc_display],
         show_progress="minimal"
     )
     
     load_btn.click(
         fn=load_existing_game, 
         inputs=[session_dropdown, session_mapping], 
-        outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, setup_row, game_row, current_theme, current_model, star_display, arc_display],
+        outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, setup_row, game_row, current_theme, current_model, arc_display],
         show_progress="minimal"
     )
     
@@ -170,14 +167,14 @@ with gr.Blocks(title="Mein Mathe-Abenteuer") as demo:
     submit_btn.click(
         fn=submit_answer, 
         inputs=[answer_input, session_id, expected_answer, current_q_text, chatbot, current_theme, current_model], 
-        outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, math_question_display, star_display],
+        outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, math_question_display],
         show_progress="minimal"
     )
     
     answer_input.submit(
         fn=submit_answer, 
         inputs=[answer_input, session_id, expected_answer, current_q_text, chatbot, current_theme, current_model], 
-        outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, math_question_display, star_display],
+        outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, math_question_display],
         show_progress="minimal"
     )
 
@@ -185,4 +182,9 @@ with gr.Blocks(title="Mein Mathe-Abenteuer") as demo:
     new_book_btn.click(fn=refresh_sessions, outputs=[session_dropdown, session_mapping])
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=3000, css=custom_css, theme=gr.themes.Soft())
+    demo.launch(
+        server_name="0.0.0.0", 
+        server_port=3000, 
+        css=custom_css, 
+        theme=gr.themes.Soft()
+    )

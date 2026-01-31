@@ -9,23 +9,22 @@
 *   **Modular Providers:** The system abstracts LLM providers (Google, OpenAI, OpenRouter) via a central `config.py`.
 *   **LiteLLM Integration:** We use `litellm` for standardized API calls.
 *   **Strict Prefixes:**
-    *   **OpenRouter:** Uses native `openrouter/` prefix (e.g., `openrouter/openai/gpt-oss-120b`).
+    *   **OpenRouter:** Uses native `openrouter/` prefix.
     *   **Google:** Uses `gemini/` prefix.
-*   **No Fallbacks:** If a specific model fails (e.g., API error), the request fails gracefully with a user message, rather than silently switching models. This ensures transparency.
+*   **Robustness:** No automated fallbacks between models (fail-fast to show config errors). Exponential backoff for API retries.
 
 ### 2. Prompting Strategy (`backend/prompts.py`)
-*   **Static System Prompt:** The system prompt is **constant** (no variables). This allows LLM providers to cache it efficiently, reducing latency and cost.
-*   **Dynamic User Prompt:** All context (History, Theme, Math Examples) is injected into the *User Message*.
-*   **Multi-Shot:** The user prompt contains diverse examples of math problems ("Situation -> Question") to guide the LLM without restricting it to a single type.
-*   **JSON Enforcement:** All outputs are strictly validated via Pydantic (`StoryResponse`).
+*   **Static System Prompt:** The system prompt is **constant** (no variables). This allows LLM providers to cache it efficiently (Context Caching), reducing latency and cost.
+*   **Dynamic User Prompt:**
+    *   **Start:** Requests a `story_arc` (hidden plan) and Chapter 1.
+    *   **Continuation:** Injects the `story_arc` into the prompt to maintain long-term coherence.
+*   **Multi-Shot:** The system prompt contains diverse examples of math problems ("Situation -> Question") to guide the LLM without restricting it to a single type.
+*   **JSON Enforcement:** All outputs are strictly validated via Pydantic (`StoryResponse`, `InitialStoryResponse`).
 
 ### 3. Frontend & Design (`frontend/`)
-*   **Minimalism:** We rely on browser defaults for colors (Dark/Light mode support) but enforce the **'Lexend'** font for readability.
+*   **Minimalism:** Browser defaults for colors (Dark/Light mode support).
 *   **Math Box:** The only heavily styled element is the math question container (`.math-box`), designed to be clean and distinct.
-*   **UX:**
-    *   **Delete Session:** Users can remove old stories.
-    *   **Stars:** Persistent reward system stored in DB.
-    *   **Retry:** Connection errors allow users to simply click "Check" again without losing progress.
+*   **Arc Reveal:** An accordion allows users to see the internal `story_arc`.
 
 ## 🛠 Development Workflow
 
@@ -36,10 +35,17 @@
 
 ### Database
 *   **SQLite:** `data/adventure.db`.
-*   **Schema:** `sessions` (id, theme, model, stars) -> `messages` (role, content).
-*   **State Recovery:** The controller rebuilds the full conversation history from the DB for every turn to ensure narrative consistency.
+*   **Schema:** `sessions` (theme, model, story_arc) -> `messages` (role, content).
+*   **State Recovery:** The controller rebuilds the full conversation history from the DB for every turn.
 
-## 📝 Recent Decisions & Context
-1.  **CSS Revert:** We moved back from a "playful/rotated" design to a clean, professional look to avoid visual clutter.
-2.  **Model Config:** Models are defined in `PROVIDERS` dictionary in `config.py`. To add a model, edit this file.
-3.  **Error Handling:** We use exponential backoff for retries (especially for "Model Overloaded" 503 errors).
+## 📝 Maintenance Guidelines
+
+### Documentation Standards
+*   **Docstrings:** Every class and public method MUST have a docstring explaining *what* it does, *args*, and *return values*.
+*   **Type Hints:** Use standard Python typing (`List`, `Dict`, `Optional`) for all function signatures.
+*   **Comments:** Use comments sparingly but effectively for complex logic blocks (e.g., prompt assembly, retry loops).
+
+### Adding Features
+1.  **Config:** Update `backend/config.py` for new models.
+2.  **Schema:** Update Pydantic models in `llm_engine.py` if output structure changes.
+3.  **UI:** Update `frontend/ui.py` only if necessary. Keep CSS minimal.

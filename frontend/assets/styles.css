@@ -48,19 +48,12 @@ h1 {
 
 /* Feedback */
 .feedback-wrong { 
-    background-color: rgba(214, 48, 49, 0.1) !important; 
-    border-color: #d63031 !important; 
+    background-color: #fff5f5 !important; 
+    border-color: #fab1a0 !important; 
     color: #d63031 !important; 
 }
 .feedback-correct { 
-    background-color: rgba(0, 184, 148, 0.1) !important; 
-    border-color: #00b894 !important; 
+    background-color: #f0fff4 !important; 
+    border-color: #55efc4 !important; 
     color: #00b894 !important; 
-}
-
-.star-counter {
-    font-size: 1.8rem !important;
-    color: #fdcb6e; /* Sanfteres Gelb */
-    font-weight: 800;
-    text-align: right;
 }
