@@ -4,16 +4,12 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
-# Ensure absolute path to data directory
-# BASE_DIR = /home/devuser/gemini/math-adventure
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 DB_PATH = os.path.join(DATA_DIR, 'adventure.db')
 
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
-
-print(f"DATABASE PATH: {DB_PATH}", file=sys.stderr)
 
 Base = declarative_base()
 
@@ -23,7 +19,8 @@ class GameSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     theme = Column(String)
     model = Column(String)
-    stars = Column(Integer, default=0) # Die neue Spalte
+    stars = Column(Integer, default=0)
+    story_arc = Column(Text, default="") # NEU: Der rote Faden der Geschichte
     messages = relationship("Message", back_populates="session", cascade="all, delete-orphan")
 
 class Message(Base):
@@ -36,13 +33,8 @@ class Message(Base):
     
     session = relationship("GameSession", back_populates="messages")
 
-# Setup Engine
 engine = create_engine(f'sqlite:///{DB_PATH}', echo=False)
-
-# Force recreation if schema mismatch (simple hack for dev)
-# In production, use Alembic. Here, we just try to create.
 Base.metadata.create_all(engine)
-
 SessionLocal = sessionmaker(bind=engine)
 
 def get_db():
@@ -61,6 +53,15 @@ def create_session(theme: str, model: str):
     db.close()
     return session.id
 
+def update_story_arc(session_id: int, arc: str):
+    """Speichert den initialen Handlungsbogen."""
+    db = SessionLocal()
+    session = db.query(GameSession).filter(GameSession.id == session_id).first()
+    if session:
+        session.story_arc = arc
+        db.commit()
+    db.close()
+
 def add_message(session_id: int, role: str, content: str):
     db = SessionLocal()
     msg = Message(session_id=session_id, role=role, content=content)
@@ -77,21 +78,25 @@ def get_history(session_id: int):
 
 def get_all_sessions():
     db = SessionLocal()
-    # Hier knallt es, wenn 'stars' fehlt
     sessions = db.query(GameSession).order_by(GameSession.created_at.desc()).all()
     result = [(s.id, f"Abenteuer {s.id}: {s.theme} ({s.created_at.strftime('%d.%m %H:%M')})") for s in sessions]
     db.close()
     return result
 
-def get_session_by_id(session_id: int):
+def get_session_details(session_id: int):
+    """Gibt Details inklusive Story-Arc zurück."""
     db = SessionLocal()
     session = db.query(GameSession).filter(GameSession.id == session_id).first()
-    theme, model = session.theme, session.model
+    theme, model, arc = session.theme, session.model, session.story_arc
     db.close()
-    return theme, model
+    return theme, model, arc
+
+def get_session_by_id(session_id: int):
+    # Deprecated helper, kept for compatibility if needed, but updated to use details
+    t, m, _ = get_session_details(session_id)
+    return t, m
 
 def delete_session(session_id: int):
-    """Löscht eine Sitzung und alle zugehörigen Nachrichten."""
     db = SessionLocal()
     session = db.query(GameSession).filter(GameSession.id == session_id).first()
     if session:
