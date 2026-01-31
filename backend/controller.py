@@ -10,7 +10,6 @@ class GameController:
         """Startet Spiel und initialisiert den Story-Arc."""
         session_id = create_session(theme, model_name)
         
-        # Aufruf mit leerer History -> is_start=True
         response_data = self.llm.generate_turn([], model=model_name, theme=theme)
         
         if not response_data:
@@ -18,13 +17,12 @@ class GameController:
                 "story": "Der Erzähler schweigt...", "question": "Fehler", "answer": 0
             }, 0
 
-        # Story Arc speichern!
-        if 'story_arc' in response_data:
-            update_story_arc(session_id, response_data['story_arc'])
-            print(f"DEBUG: Story Arc saved: {response_data['story_arc']}")
+        # Story Arc speichern & extrahieren
+        arc = response_data.get('story_arc', "Kein Plan vorhanden.")
+        update_story_arc(session_id, arc)
 
         add_message(session_id, "assistant", json.dumps(response_data))
-        return session_id, response_data, 0
+        return session_id, response_data, 0, arc # Return ARC
 
     def submit_answer(self, session_id, user_answer, expected_answer, model_name, theme):
         try:
@@ -33,7 +31,6 @@ class GameController:
         except:
             return False, None, 0
 
-        # Stern
         db = SessionLocal()
         session = db.query(GameSession).filter(GameSession.id == session_id).first()
         session.stars += 1
@@ -43,19 +40,16 @@ class GameController:
 
         add_message(session_id, "user", f"Gelöst! Antwort: {user_answer}")
         
-        # History & Arc laden
         raw_history = get_history(session_id)
-        # Wir brauchen den Arc aus der DB
         _, _, story_arc = get_session_details(session_id)
         
         formatted_history = [{"role": m['role'], "content": m['content']} for m in raw_history]
 
-        # Aufruf mit Arc
         response_data = self.llm.generate_turn(
             formatted_history, 
             model=model_name, 
             theme=theme, 
-            story_arc=story_arc # WICHTIG!
+            story_arc=story_arc
         )
         
         if not response_data:
@@ -67,7 +61,7 @@ class GameController:
         return True, response_data, new_stars
 
     def load_game(self, session_id):
-        theme, model, _ = get_session_details(session_id) # Arc brauchen wir hier im UI nicht direkt
+        theme, model, arc = get_session_details(session_id) # Arc holen
         raw_history = get_history(session_id)
         
         db = SessionLocal()
@@ -84,4 +78,4 @@ class GameController:
         else:
             response_data = {"story": "Start...", "question": "...", "answer": 0}
             
-        return theme, model, raw_history, response_data, stars
+        return theme, model, raw_history, response_data, stars, arc # Return ARC
