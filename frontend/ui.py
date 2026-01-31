@@ -117,7 +117,7 @@ def reset_to_start():
 
 # --- UI Aufbau ---
 
-with gr.Blocks(title="Mein Mathe-Abenteuer", css=custom_css, theme=None) as demo:
+with gr.Blocks(title="Mein Mathe-Abenteuer") as demo:
     session_id = gr.Textbox(visible=False); expected_answer = gr.Textbox(visible=False)
     current_q_text = gr.State(value="")
     session_mapping = gr.State(value={}); current_theme = gr.State(value=""); current_model = gr.State(value="")

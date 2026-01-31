@@ -1,58 +1,45 @@
 # Project Context: Math Adventure
 
-## Project Overview
-**Math Adventure** is an AI-powered interactive storytelling game designed for children (approx. ages 6-8). It dynamically generates infinite adventure stories where the narrative progress is gated by age-appropriate math problems (Addition/Subtraction 0-20, simple multiplication, sequences).
+## 🎯 Core Concept
+**Math Adventure** is an interactive storytelling game for children (ages 6-8). It combines generative AI with educational math problems. The key philosophy is **"Story First, Math Integrated"**.
 
-The application is built as a **Single Page Application (SPA)** using **Gradio** for the frontend, served by a **Python** backend that orchestrates **LLM** calls (via LiteLLM) and manages state in a **SQLite** database.
+## 🧠 Architectural Highlights
 
-## Architecture
+### 1. LLM Engine (`backend/llm_engine.py` & `backend/config.py`)
+*   **Modular Providers:** The system abstracts LLM providers (Google, OpenAI, OpenRouter) via a central `config.py`.
+*   **LiteLLM Integration:** We use `litellm` for standardized API calls.
+*   **Strict Prefixes:**
+    *   **OpenRouter:** Uses native `openrouter/` prefix (e.g., `openrouter/openai/gpt-oss-120b`).
+    *   **Google:** Uses `gemini/` prefix.
+*   **No Fallbacks:** If a specific model fails (e.g., API error), the request fails gracefully with a user message, rather than silently switching models. This ensures transparency.
 
-### 1. Backend (`backend/`)
-*   **`llm_engine.py`**: Handles interaction with Large Language Models (Gemini 2.0/3.0, GPT-OSS). Uses `litellm` for provider abstraction and robust error handling (JSON repair).
-*   **`controller.py`**: The game loop controller. It receives user input, validates math answers locally (deterministic), and triggers the LLM for the next story chapter.
-*   **`database.py`**: Uses **SQLAlchemy** to manage the SQLite database (`data/adventure.db`). Stores game sessions, full chat history, and collected stars (rewards).
-*   **`prompts.py`**: Central repository for system prompts. Defines the "Dungeon Master" persona and the strict rules for generating math tasks without revealing answers.
+### 2. Prompting Strategy (`backend/prompts.py`)
+*   **Static System Prompt:** The system prompt is **constant** (no variables). This allows LLM providers to cache it efficiently, reducing latency and cost.
+*   **Dynamic User Prompt:** All context (History, Theme, Math Examples) is injected into the *User Message*.
+*   **Multi-Shot:** The user prompt contains diverse examples of math problems ("Situation -> Question") to guide the LLM without restricting it to a single type.
+*   **JSON Enforcement:** All outputs are strictly validated via Pydantic (`StoryResponse`).
 
-### 2. Frontend (`frontend/`)
-*   **`ui.py`**: Defines the user interface using **Gradio**. It handles session selection, chat display, and input forms.
-*   **`assets/styles.css`**: Custom CSS to ensure a child-friendly, accessible design (large fonts, 'Lexend' typeface, high contrast, "Light Mode only").
+### 3. Frontend & Design (`frontend/`)
+*   **Minimalism:** We rely on browser defaults for colors (Dark/Light mode support) but enforce the **'Lexend'** font for readability.
+*   **Math Box:** The only heavily styled element is the math question container (`.math-box`), designed to be clean and distinct.
+*   **UX:**
+    *   **Delete Session:** Users can remove old stories.
+    *   **Stars:** Persistent reward system stored in DB.
+    *   **Retry:** Connection errors allow users to simply click "Check" again without losing progress.
 
-### 3. Data (`data/`)
-*   **`adventure.db`**: SQLite database file. Created automatically on startup if missing.
+## 🛠 Development Workflow
 
-## Key Technologies
-*   **Language:** Python 3.12+
-*   **Dependency Management:** `uv`
-*   **UI Framework:** Gradio (>= 6.5.0)
-*   **AI Interface:** LiteLLM
-*   **Database:** SQLAlchemy (SQLite)
+### Key Commands
+*   **Run Server:** `nohup uv run main.py > server.log 2>&1 &`
+*   **Stop Server:** `lsof -t -i:3000 | xargs -r kill -9`
+*   **Test Coherence:** `uv run tests/test_coherence.py` (Simulates a game loop).
 
-## Build & Run Instructions
+### Database
+*   **SQLite:** `data/adventure.db`.
+*   **Schema:** `sessions` (id, theme, model, stars) -> `messages` (role, content).
+*   **State Recovery:** The controller rebuilds the full conversation history from the DB for every turn to ensure narrative consistency.
 
-**Prerequisites:**
-*   `uv` installed.
-*   `.env` file in `/` with `GEMINI_API_KEY` and/or `OPENROUTER_API_KEY`.
-
-**Setup:**
-```bash
-cd math-adventure
-uv sync
-```
-
-**Run Server:**
-```bash
-uv run main.py
-```
-The application will be available at `http://localhost:3000`.
-
-**Run Tests:**
-To verify the story generation logic autonomously:
-```bash
-uv run tests/test_coherence.py
-```
-
-## Development Conventions
-*   **Modular Design:** Keep logic (Backend), presentation (Frontend/CSS), and data (DB) separate.
-*   **Prompt Engineering:** Modify `backend/prompts.py` to change the AI's behavior or math difficulty level. Do not hardcode prompts in `llm_engine.py`.
-*   **Styling:** Use `frontend/assets/styles.css` for all visual changes. Avoid inline CSS in Python where possible.
-*   **State Management:** The backend is stateless regarding the immediate turn logic; the frontend passes the required state (Session ID) to the controller, which rehydrates context from the DB.
+## 📝 Recent Decisions & Context
+1.  **CSS Revert:** We moved back from a "playful/rotated" design to a clean, professional look to avoid visual clutter.
+2.  **Model Config:** Models are defined in `PROVIDERS` dictionary in `config.py`. To add a model, edit this file.
+3.  **Error Handling:** We use exponential backoff for retries (especially for "Model Overloaded" 503 errors).

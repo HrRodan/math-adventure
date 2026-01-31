@@ -41,9 +41,9 @@ h1 {
 }
 
 .math-content {
-    font-size: 2.2rem !important;
+    font-size: 1.8rem !important;
     font-weight: 700;
-    color: var(--body-text-color);
+    color: #2d3436 !important;
 }
 
 /* Feedback */
