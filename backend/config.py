@@ -45,7 +45,7 @@ PROVIDERS = {
         models=[
             "openai/gpt-oss-120b", 
             "deepseek/deepseek-v3.2",
-            "nousresearch/hermes-4-70b"
+            "nousresearch/hermes-4-405b"
         ]
     )
 }
