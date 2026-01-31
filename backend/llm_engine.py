@@ -34,19 +34,17 @@ class LLMEngine:
     def generate_turn(self, history, model, theme="Abenteuer"):
         provider = get_provider_for_model(model)
         if not provider:
-            # Fallback auf ersten verfügbaren Provider
-            provider = list(PROVIDERS.values())[0]
-            model = provider.models[0]
+            # Kein Fallback mehr, Fehler muss sichtbar sein
+            print(f"ERROR: Model '{model}' configuration not found.")
+            return None
 
         api_key = provider.get_api_key()
         if not api_key:
-            print(f"ERROR: No API Key for {provider.id}")
+            print(f"ERROR: Missing API Key for provider '{provider.id}'")
             return None
 
-        # 1. System Prompt (Statisch mit vielen Beispielen)
         system_msg = get_system_prompt()
         
-        # 2. User Prompt (Nur Kontext, keine starren Regeln)
         if not history:
             user_msg = f"THEMA: '{theme}'\n\nFühre die Helden ein, starte das Abenteuer und stelle das erste Mathe-Rätsel!"
         else:
@@ -58,7 +56,6 @@ class LLMEngine:
             {"role": "user", "content": user_msg}
         ]
 
-        # Modell-ID & Params
         if provider.litellm_prefix and not model.startswith(provider.litellm_prefix):
             lite_model = f"{provider.litellm_prefix}{model}"
         else:
@@ -79,17 +76,23 @@ class LLMEngine:
         if provider.extra_params:
             completion_args.update(provider.extra_params)
 
-        print(f"DEBUG: LiteLLM Call -> model='{lite_model}'")
+        print(f"DEBUG: Calling {lite_model}...")
         
-        try:
-            response = completion(**completion_args)
-            content = response.choices[0].message.content
-            parsed = self._clean_json(content)
-            if parsed and 'story' in parsed:
-                return parsed
-        except Exception as e:
-            print(f"ERROR calling {lite_model}: {e}")
-            import traceback
-            traceback.print_exc()
+        # Retry Loop mit Backoff
+        for attempt in range(3):
+            try:
+                response = completion(**completion_args)
+                content = response.choices[0].message.content
+                parsed = self._clean_json(content)
+                if parsed and 'story' in parsed:
+                    return parsed
+                else:
+                    print(f"Warning (Attempt {attempt+1}): Invalid JSON received.")
+            except Exception as e:
+                print(f"Error (Attempt {attempt+1}) calling {lite_model}: {e}")
+                # Wartezeit erhöhen: 2s, 4s, 8s
+                sleep_time = 2 * (2 ** attempt)
+                time.sleep(sleep_time)
 
+        print("CRITICAL: All attempts failed.")
         return None

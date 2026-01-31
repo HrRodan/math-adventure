@@ -5,7 +5,6 @@
     --font-primary: 'Lexend', sans-serif;
 }
 
-/* Schriftart global setzen, aber Farben dem Browser überlassen */
 body, .gradio-container, .prose, button, input, label, .message-wrap, .chatbot {
     font-family: var(--font-primary) !important;
 }
@@ -16,41 +15,52 @@ h1 {
     margin-bottom: 0.5rem !important;
 }
 
-/* Chat-Buttons ausblenden für Kinder-Fokus */
 .message-buttons-right, button[aria-label="Copy"], button[aria-label="Like"] {
     display: none !important;
 }
 
-/* --- Die Mathe-Box bleibt als spezielles Spielelement --- */
+/* --- Mathe Box (Schlicht & Edel) --- */
 .math-box {
-    background-color: #fff9c4 !important;
-    border: 3px solid #fbc02d !important;
-    border-radius: 12px;
-    padding: 15px;
-    margin: 15px 0 !important;
+    background-color: #fcfcfc !important; /* Fast Weiß */
+    border: 2px solid #dfe6e9 !important; /* Sehr dezenter Rand */
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0 !important;
     text-align: center !important;
-    color: #e65100 !important;
+    color: #2d3436 !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03); /* Minimaler Schatten */
 }
 
 .math-header {
-    font-size: 0.9rem !important;
-    font-weight: 700;
+    font-size: 0.85rem !important;
+    font-weight: 600;
     text-transform: uppercase;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    color: #636e72 !important; /* Dunkelgrau */
+    letter-spacing: 1px;
 }
 
 .math-content {
     font-size: 2.2rem !important;
-    font-weight: 800;
+    font-weight: 700;
+    color: #2d3436 !important;
 }
 
-/* Feedback-Farben für die Box */
-.feedback-wrong { background-color: #ffcdd2 !important; border-color: #e53935 !important; color: #b71c1c !important; }
-.feedback-correct { background-color: #c8e6c9 !important; border-color: #43a047 !important; color: #1b5e20 !important; }
+/* Feedback */
+.feedback-wrong { 
+    background-color: #fff5f5 !important; 
+    border-color: #fab1a0 !important; 
+    color: #d63031 !important; 
+}
+.feedback-correct { 
+    background-color: #f0fff4 !important; 
+    border-color: #55efc4 !important; 
+    color: #00b894 !important; 
+}
 
 .star-counter {
     font-size: 1.8rem !important;
-    color: #f1c40f;
+    color: #fdcb6e; /* Sanfteres Gelb */
     font-weight: 800;
     text-align: right;
 }
