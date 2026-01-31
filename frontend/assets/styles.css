@@ -1,126 +1,56 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;800&display=swap');
 
-/* --- Globale Variablen --- */
+/* --- Nur das Nötigste --- */
 :root {
     --font-primary: 'Lexend', sans-serif;
-    --text-color: #2c3e50;
-    --bg-color: #fdfbf7;
-    --accent-color: #e67e22;
-    --success-color: #2ecc71;
-    --error-color: #e74c3c;
-    --box-border-radius: 20px;
-    --base-font-size: 22px;
 }
 
-/* --- Grundlayout --- */
-body, .gradio-container, .prose {
+/* Schriftart global setzen, aber Farben dem Browser überlassen */
+body, .gradio-container, .prose, button, input, label, .message-wrap, .chatbot {
     font-family: var(--font-primary) !important;
-    font-size: var(--base-font-size) !important;
-    line-height: 1.6 !important;
-    color: var(--text-color) !important;
-    background-color: var(--bg-color) !important;
 }
 
 h1 {
-    font-size: 3.5rem !important;
-    font-weight: 800 !important;
-    color: var(--accent-color) !important;
+    font-size: 2.8rem !important;
     text-align: center;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.5rem !important;
 }
 
-/* --- Chatbot --- */
-.message-wrap .message, .chatbot .message {
-    font-size: 1.2rem !important;
-    padding: 1.5rem !important;
-    border-radius: var(--box-border-radius) !important;
-    border: 2px solid #eee !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+/* Chat-Buttons ausblenden für Kinder-Fokus */
+.message-buttons-right, button[aria-label="Copy"], button[aria-label="Like"] {
+    display: none !important;
 }
-.message.user { background-color: #e8f5e9 !important; border-bottom-right-radius: 4px !important; }
-.message.bot { background-color: #ffffff !important; border-bottom-left-radius: 4px !important; }
 
-.message-buttons-right, button[aria-label="Copy"], button[aria-label="Like"] { display: none !important; }
-
-/* --- Mathe Box (Notizzettel-Look) --- */
+/* --- Die Mathe-Box bleibt als spezielles Spielelement --- */
 .math-box {
-    background-color: #fffde7; /* Post-it Gelb */
-    border: 2px solid #f9a825;
-    border-radius: 10px; /* Weniger rund, mehr wie Papier */
-    padding: 20px;
-    margin: 20px 0 !important;
+    background-color: #fff9c4 !important;
+    border: 3px solid #fbc02d !important;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 15px 0 !important;
     text-align: center !important;
     color: #e65100 !important;
-    box-shadow: 3px 3px 10px rgba(0,0,0,0.1);
-    transform: rotate(-1deg); /* Leichter Twist */
-    max-width: 90%;
-    margin-left: auto !important;
-    margin-right: auto !important;
 }
 
 .math-header {
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-    margin-bottom: 15px !important;
-    color: #f57f17 !important;
-    border-bottom: 2px dashed #fbc02d;
-    padding-bottom: 5px;
-    display: inline-block;
+    font-size: 0.9rem !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 5px;
 }
 
 .math-content {
-    font-size: 2.8rem !important;
-    font-weight: 800 !important;
-    color: #d35400 !important;
-    font-family: 'Lexend', monospace !important; /* Zahlen sollen klar sein */
+    font-size: 2.2rem !important;
+    font-weight: 800;
 }
 
-/* Feedback Farben */
-.feedback-wrong {
-    background-color: #ffebee !important;
-    border-color: var(--error-color) !important;
-    transform: rotate(1deg); /* Wackelt bei Fehler */
-}
-.feedback-wrong .math-header, .feedback-wrong .math-content { color: #b71c1c !important; }
-
-.feedback-correct {
-    background-color: #e8f5e9 !important;
-    border-color: var(--success-color) !important;
-    transform: scale(1.02); /* Pop-Effekt */
-}
-.feedback-correct .math-header, .feedback-correct .math-content { color: #1b5e20 !important; }
-
-/* --- Inputs & Buttons --- */
-input, textarea, .gr-box, .dropdown-header {
-    font-size: 1.2rem !important;
-    border-radius: 12px !important;
-    padding: 12px !important;
-    border: 3px solid #f39c12 !important;
-    background-color: #fff !important;
-}
-
-button {
-    font-size: 1.4rem !important;
-    font-weight: 700 !important;
-    padding: 15px 30px !important;
-    border-radius: 50px !important;
-    border: none !important;
-    cursor: pointer !important;
-    color: white !important;
-    margin-top: 10px !important;
-    box-shadow: 0 4px 0 rgba(0,0,0,0.2) !important;
-}
-button:active { transform: translateY(4px) !important; box-shadow: none !important; }
-
-button.primary { background-color: var(--btn-primary-bg) !important; }
-button.secondary { background-color: var(--btn-secondary-bg) !important; }
+/* Feedback-Farben für die Box */
+.feedback-wrong { background-color: #ffcdd2 !important; border-color: #e53935 !important; color: #b71c1c !important; }
+.feedback-correct { background-color: #c8e6c9 !important; border-color: #43a047 !important; color: #1b5e20 !important; }
 
 .star-counter {
-    font-size: 2rem !important;
-    color: #f1c40f !important;
-    font-weight: 800 !important;
+    font-size: 1.8rem !important;
+    color: #f1c40f;
+    font-weight: 800;
     text-align: right;
-    padding: 10px;
-    text-shadow: 1px 1px 0 #fff;
 }

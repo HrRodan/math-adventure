@@ -2,8 +2,8 @@ import gradio as gr
 import json
 import os
 from backend.controller import GameController
-from backend.database import get_all_sessions
-from backend.config import get_all_models # Dynamische Modell-Liste
+from backend.database import get_all_sessions, delete_session
+from backend.config import get_all_models
 
 controller = GameController()
 
@@ -11,6 +11,16 @@ controller = GameController()
 css_path = os.path.join(os.path.dirname(__file__), "assets", "styles.css")
 with open(css_path, "r") as f:
     custom_css = f.read() + """
+    .celebration {
+        animation: party 0.5s ease infinite alternate;
+        font-size: 3rem !important;
+        text-align: center;
+    }
+    @keyframes party {
+        from { transform: scale(1); }
+        to { transform: scale(1.2) rotate(5deg); }
+    }
+    .delete-btn { background-color: #ff7675 !important; font-size: 1rem !important; padding: 5px 10px !important; }
     .star-counter { font-size: 2.5rem !important; color: #f1c40f !important; font-weight: bold !important; text-align: right; }
     """
 
@@ -18,7 +28,12 @@ def format_math_box(content, state="neutral", header="Deine Aufgabe"):
     css_class = "math-box"
     if state == "wrong": css_class += " feedback-wrong"
     if state == "correct": css_class += " feedback-correct"
-    return f'<div class="{css_class}"><div class="math-header">{header}</div><div class="math-content">{content}</div></div>'
+    
+    header_content = header
+    if state == "correct":
+        header_content = "✨ RICHTIG! ✨"
+        
+    return f'<div class="{css_class}"><div class="math-header">{header_content}</div><div class="math-content">{content}</div></div>'
 
 def append_question_to_story(story, question):
     return f"{story}\n\n**❓ Rätsel:** {question}"
@@ -27,12 +42,18 @@ def refresh_sessions():
     sessions = get_all_sessions()
     choices = [s[1] for s in sessions]
     mapping = {s[1]: s[0] for s in sessions}
-    return gr.update(choices=choices), mapping
+    return gr.update(choices=choices, value=None), mapping
+
+def handle_delete(session_desc, session_mapping):
+    if not session_desc: return refresh_sessions()
+    s_id = session_mapping.get(session_desc)
+    if s_id:
+        delete_session(s_id)
+    return refresh_sessions()
 
 # --- Game Flow ---
 
 def start_new_game(theme, model_name):
-    # Fallback, falls kein Modell gewählt wurde
     if not model_name: 
         model_name = get_all_models()[0]
         
@@ -87,7 +108,7 @@ def submit_answer(user_input, session_id, expected_answer, current_q_text, chat_
     chat_history.append({"role": "assistant", "content": append_question_to_story(new_data['story'], new_data['question'])})
     
     new_q = new_data['question']
-    html = format_math_box(new_q, state="neutral", header="Nächste Aufgabe")
+    html = format_math_box(new_q, state="correct", header="SUPER GEMACHT!")
     
     return session_id, new_data['answer'], new_q, chat_history, html, "", gr.update(), f"⭐ {stars}"
 
@@ -101,7 +122,9 @@ with gr.Blocks(title="Mein Mathe-Abenteuer", css=custom_css, theme=None) as demo
     current_q_text = gr.State(value="")
     session_mapping = gr.State(value={}); current_theme = gr.State(value=""); current_model = gr.State(value="")
     
-    gr.HTML("<h1>✨ Mein Mathe-Abenteuer ✨</h1>")
+    with gr.Row():
+        gr.HTML("<h1>✨ Mein Mathe-Abenteuer ✨</h1>", scale=4)
+        star_display = gr.Markdown("⭐ 0", elem_classes="star-counter")
     
     # Start-Bildschirm
     with gr.Row(variant="panel") as setup_row:
@@ -109,7 +132,6 @@ with gr.Blocks(title="Mein Mathe-Abenteuer", css=custom_css, theme=None) as demo
             gr.Markdown("### 🆕 Neues Abenteuer")
             theme_input = gr.Textbox(label="Thema", value="Ritterburg")
             
-            # Dynamische Modell-Liste aus Config
             available_models = get_all_models()
             model_dropdown = gr.Dropdown(
                 label="Erzähler", 
@@ -121,7 +143,9 @@ with gr.Blocks(title="Mein Mathe-Abenteuer", css=custom_css, theme=None) as demo
         with gr.Column():
             gr.Markdown("### 📖 Weiterspielen")
             session_dropdown = gr.Dropdown(label="Deine Bücher", choices=[])
-            load_btn = gr.Button("Buch aufschlagen 📖", variant="secondary")
+            with gr.Row():
+                load_btn = gr.Button("Buch aufschlagen 📖", variant="secondary")
+                delete_btn = gr.Button("Löschen 🗑️", variant="stop", elem_classes="delete-btn")
             
     # Spiel-Bildschirm
     with gr.Column(visible=False) as game_row:
@@ -134,23 +158,29 @@ with gr.Blocks(title="Mein Mathe-Abenteuer", css=custom_css, theme=None) as demo
                 answer_input = gr.Textbox(label="Lösung:", placeholder="Zahl...")
                 submit_btn = gr.Button("Prüfen ✨", variant="primary")
         
-        new_book_btn = gr.Button("📔 Neues Buch anfangen", variant="secondary", size="sm")
+        new_book_btn = gr.Button("📔 Zurück zum Regal", variant="secondary")
 
     # Events
     demo.load(fn=refresh_sessions, outputs=[session_dropdown, session_mapping])
     
     start_btn.click(
         fn=start_new_game, 
-        inputs=[theme_input, model_dropdown], 
+        inputs=[theme_input, model_dropdown],
         outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, setup_row, game_row, current_theme, current_model, star_display],
         show_progress="minimal"
     )
     
     load_btn.click(
         fn=load_existing_game, 
-        inputs=[session_dropdown, session_mapping], 
+        inputs=[session_dropdown, session_mapping],
         outputs=[session_id, expected_answer, current_q_text, chatbot, math_question_display, answer_input, setup_row, game_row, current_theme, current_model, star_display],
         show_progress="minimal"
+    )
+    
+    delete_btn.click(
+        fn=handle_delete,
+        inputs=[session_dropdown, session_mapping],
+        outputs=[session_dropdown, session_mapping]
     )
     
     submit_btn.click(
@@ -168,10 +198,7 @@ with gr.Blocks(title="Mein Mathe-Abenteuer", css=custom_css, theme=None) as demo
     )
 
     new_book_btn.click(fn=reset_to_start, outputs=[setup_row, game_row])
-
-    # Wir definieren star_display hier unten, damit es referenziert werden kann,
-    # aber eigentlich ist es oben schon definiert. Gradio Blocks sind da flexibel.
-    # Ah, star_display wurde im Row() oben definiert. Passt.
+    new_book_btn.click(fn=refresh_sessions, outputs=[session_dropdown, session_mapping])
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=3000, css=custom_css, theme=gr.themes.Soft())

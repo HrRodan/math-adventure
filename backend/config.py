@@ -9,7 +9,7 @@ class LLMProvider:
         self.id = id
         self.name = name
         self.api_key_env = api_key_env
-        self.models = models
+        self.models = models # Das sind die IDs, die im UI angezeigt werden
         self.base_url = base_url
         self.litellm_prefix = litellm_prefix 
         self.extra_params = extra_params or {}
@@ -31,18 +31,17 @@ PROVIDERS = {
         id="openai",
         name="OpenAI",
         api_key_env="OPENAI_API_KEY",
-        litellm_prefix="", # Kein Prefix für OpenAI nötig
+        litellm_prefix="", 
         models=[
             "gpt-5-mini"
         ],
-        extra_params={"drop_params": True} # Wichtig für GPT-5/O1
+        extra_params={"drop_params": True}
     ),
     "openrouter": LLMProvider(
         id="openrouter",
         name="OpenRouter",
         api_key_env="OPENROUTER_API_KEY",
-        litellm_prefix="openrouter/", # LiteLLM Routing
-        # KEINE base_url setzen, LiteLLM macht das automatisch bei 'openrouter/' prefix
+        litellm_prefix="openrouter/", 
         models=[
             "openai/gpt-oss-120b", 
             "deepseek/deepseek-v3.2",
