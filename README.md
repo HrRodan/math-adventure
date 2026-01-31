@@ -23,13 +23,28 @@ math-adventure/
 │   ├── prompts.py          # Statische System-Prompts
 │   └── database.py         # SQLAlchemy Modelle
 ├── frontend/               # Benutzeroberfläche
-│   ├── ui.py               # Gradio Interface
-│   └── assets/
-│       └── styles.css      # CSS Styling
-├── data/                   # Datenbank
-│   └── adventure.db        # SQLite Datei
-└── main.py                 # Start-Skript
+...
 ```
+
+## 🧠 Prompt Engineering & Architektur
+
+Das Herzstück der Anwendung ist eine zweistufige Prompt-Strategie, die **Performance** (Caching) mit **Kreativität** verbindet:
+
+### 1. Der System-Prompt (Statisch)
+Der System-Prompt (`backend/prompts.py`) ist konstant und ändert sich nie.
+*   **Vorteil:** Moderne LLMs (wie Gemini 1.5/2.0) können diesen riesigen Textblock **cachen**, was Anfragen extrem beschleunigt und Kosten spart.
+*   **Inhalt:**
+    *   **Persona:** "Bestseller-Kinderbuchautor".
+    *   **Regeln:** Sprache (Deutsch), Stil (Emojis), JSON-Format.
+    *   **Mathe-Beispiele (Multi-Shot):** Eine Liste verschiedener Aufgabentypen (Subtraktion, Lücken, Kettenaufgaben mit 3 Zahlen), an denen sich das Modell orientiert.
+
+### 2. Der User-Prompt (Dynamisch)
+Dieser Teil wird bei jedem Zug neu generiert (`backend/llm_engine.py`).
+*   **Inhalt:**
+    *   **Thema:** Das vom Kind gewählte Szenario (z.B. "Ritterburg").
+    *   **Historie:** Eine Zusammenfassung der bisherigen Geschichte ("Was bisher geschah").
+    *   **Anweisung:** "Erzähle weiter und integriere ein passendes Mathe-Rätsel."
+*   **Freiheit:** Wir zwingen das Modell nicht in starre Schablonen ("Mache jetzt eine Plus-Aufgabe"), sondern lassen es anhand der *Handlung* entscheiden, welcher der gelernten Aufgabentypen am besten passt.
 
 ## 🚀 Installation & Start
 

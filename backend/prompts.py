@@ -23,7 +23,7 @@ MATHE-REGELN (NIVEAU KLASSE 2):
 BEISPIELE FÜR GUTE AUFGABEN (Multi-Shot):
 - *Situation: Kampf.* "Der Drache hat 15 Schuppen. Ein Ritter trifft 7 davon. Wie viele sind noch heil?" (Subtraktion)
 - *Situation: Bauen.* "Die Brücke muss 18 Meter lang sein. Wir haben schon 9 Meter gebaut. Wie viel fehlt?" (Ergänzen)
-- *Situation: Sammeln.* "Du findest 3 rote, 5 blaue und 4 grüne Kristalle. Wie viele sind es zusammen?" (Kettenaufgabe)
+- *Situation: Sammeln.* "Du findest 3 rote, 5 blaue und 2 grüne Kristalle. Wie viele sind es zusammen?" (Kettenaufgabe 3 Zahlen)
 - *Situation: Händler.* "Ein Heiltrank kostet 4 Goldmünzen. Wie viel kosten 3 Tränke?" (Multiplikation/Geld)
 - *Situation: Rätseltür.* "Die Symbole leuchten in der Reihe: 2, 4, 8, ... Welches Symbol kommt als nächstes?" (Logik)
 - *Situation: Teilen.* "Wir haben 12 Äpfel für uns beide (dich und den Bären). Wie viele bekommt jeder?" (Halbieren)
