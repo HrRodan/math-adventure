@@ -48,11 +48,28 @@ math-adventure/
     GEMINI_API_KEY=dein_key
     OPENROUTER_API_KEY=dein_key
     ```
-4.  **Starten:**
-    ```bash
-    python main.py
-    ```
-    Öffne `http://localhost:3000` im Browser.
+### 4. Starten & Stoppen
+
+**Standard (Vordergrund):**
+Ideal zum Testen, da Fehlermeldungen direkt in der Konsole erscheinen.
+```bash
+uv run main.py
+```
+*Zum Stoppen einfach `Strg + C` drücken.*
+
+**Hintergrund (Produktiv):**
+Der Server läuft weiter, auch wenn du das Terminal schließt.
+```bash
+nohup uv run main.py > server.log 2>&1 &
+```
+
+**Server stoppen (Hintergrund):**
+Falls der Port 3000 belegt ist oder du den Hintergrund-Prozess beenden willst:
+```bash
+lsof -t -i:3000 | xargs -r kill -9
+```
+
+## 📖 Abenteuer fortsetzen
 
 ## 🤖 Entwicklungshinweise
 
