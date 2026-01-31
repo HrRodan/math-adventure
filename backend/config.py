@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 
-# Absolute Pfade für Zuverlässigkeit
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
@@ -25,32 +24,29 @@ PROVIDERS = {
         api_key_env="GEMINI_API_KEY",
         litellm_prefix="gemini/",
         models=[
-            "gemini-3-flash-preview",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash"
+            "gemini-3-flash-preview"
         ]
     ),
     "openai": LLMProvider(
         id="openai",
         name="OpenAI",
         api_key_env="OPENAI_API_KEY",
-        litellm_prefix="", # Standard OpenAI braucht kein Präfix
+        litellm_prefix="", # Kein Prefix für OpenAI nötig
         models=[
-            "gpt-4o-mini",
             "gpt-5-mini"
         ],
-        extra_params={"drop_params": True}
+        extra_params={"drop_params": True} # Wichtig für GPT-5/O1
     ),
     "openrouter": LLMProvider(
         id="openrouter",
         name="OpenRouter",
         api_key_env="OPENROUTER_API_KEY",
-        # Wir nutzen das native LiteLLM Präfix für OpenRouter
-        litellm_prefix="openrouter/", 
+        litellm_prefix="openrouter/", # LiteLLM Routing
+        # KEINE base_url setzen, LiteLLM macht das automatisch bei 'openrouter/' prefix
         models=[
-            "openai/gpt-oss-120b",
-            "deepseek/deepseek-chat",
-            "nousresearch/hermes-3-llama-3.1-405b"
+            "openai/gpt-oss-120b", 
+            "deepseek/deepseek-v3.2",
+            "nousresearch/hermes-4-70b"
         ]
     )
 }
